@@ -1,0 +1,65 @@
+trigger:
+    - master
+    
+stages:
+- stage: Build
+  jobs:
+  - job:
+
+    steps:
+    - script: dotnet build --configuration Release
+      displayName: 'dotnet build Release'
+
+    - task: DotNetCoreCLI@2
+      displayName: Run unit tests
+      inputs:
+        command: 'test'
+        projects: '**/*Tests*.csproj'
+        testRunTitle: 'Unit Tests'
+
+    - task: DotNetCoreCLI@2
+      displayName: Publish to $(Build.ArtifactStagingDirectory)
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'src/**/*.csproj'
+        arguments: '-c Release -o "$(Build.ArtifactStagingDirectory)"'
+        
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifacts
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  jobs: 
+    - job:
+
+      variables:
+      - group: AWS-ARN
+
+      steps:
+      - task: DownloadBuildArtifacts@0
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'drop'
+          downloadPath: '$(System.ArtifactsDirectory)'
+
+      - task: LambdaDeployFunction@1
+        displayName: 'Deploy Lambda Function'
+        inputs:
+          awsCredentials: 'awsLambdaCICDPipeline'
+          regionName: 'us-east-1'
+          deploymentMode: 'codeandconfiguration'
+          functionName: 'MyFunctionCreateFromAzureDevops'
+          description: 'From AzureDevops'
+          functionHandler: 'awsLambdaCICDPipeline::awsLambdaCICDPipeline.Function::FunctionHandler'
+          runtime: 'dotnetcore2.1'
+          codeLocation: 'localfile'
+          localZipFile: '$(Build.ArtifactStagingDirectory)/drop/awsLambdaCICDPipeline.zip'
+          roleARN: '$(AWS-Lambda-ARN)'
+  dependsOn:
+  - Build
+  condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
