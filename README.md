@@ -5,4 +5,4 @@ using .NET Core
 
 ## Full Documentation
 
-The full documentation can be found [here](https://devandops.cloud/ci-cd-for-lambda-functions-with-azure-devops-and-net-core/)
+The full documentation can be found [here](https://towardsdatascience.com/ci-cd-for-lambda-functions-with-azure-devops-and-net-core-9131b36582c0)
