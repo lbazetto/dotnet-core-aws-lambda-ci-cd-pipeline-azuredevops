@@ -17,6 +17,7 @@ namespace awsLambdaCICDPipeline
         /// <returns></returns>
         public string FunctionHandler(string input, ILambdaContext context)
         {
+            //toupper
             return input?.ToUpper();
         }
     }
